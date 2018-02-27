@@ -2,14 +2,26 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class NodeRayTest : MonoBehaviour {
+public class NodeNeighbors : MonoBehaviour
+{
+    #region ABOUT
+    /**
+     * This script populates a publicly accessible List of neighbor nodes to each individual node.
+     * It executes 2 instances of ray casts to check for this, and adds accordingly, all while iterating
+     * through a collider of nearby nodes within a radius.
+     */ 
+    #endregion
 
+    #region VARIABLES
     public List<GameObject> neighborNodes;
 
-	// Initializes neighbor nodes on Start
+    private const float RADIUS = 2.0f;
+    #endregion
+
+    // -- Initializes neighbor nodes on Start
     void Start()
     {
-        Collider[] hitColliders = Physics.OverlapSphere(this.transform.position, 2.0f);
+        Collider[] hitColliders = Physics.OverlapSphere(this.transform.position, RADIUS);
         foreach (var target in hitColliders)
         {
             if (target.gameObject.tag == "Node")
@@ -25,7 +37,6 @@ public class NodeRayTest : MonoBehaviour {
                     var to = target.gameObject.transform;
                     var direction = to.position - origin.position;
                     var distance = Vector3.Distance(origin.position, to.position);
-                    Debug.Log("In");
                     if (Physics.Raycast(origin.position, direction, out hit, distance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
                     {
                         if (target.gameObject.tag != "Node")
@@ -33,7 +44,6 @@ public class NodeRayTest : MonoBehaviour {
                             continue;
                         }
                         neighborNodes.Add(target.gameObject);
-                        Debug.Log("Added");
                     }
                 }
             }
@@ -57,8 +67,14 @@ public class NodeRayTest : MonoBehaviour {
     // -- Draws the connected nodes with lines
     public void OnDrawGizmos()
     {
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawSphere(this.transform.position, 0.2f);
         foreach (GameObject _Node in neighborNodes)
         {
+            // Draw the node
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawSphere(_Node.transform.position, 0.2f);
+            // Then draw its line
             Gizmos.color = Color.white;
             Gizmos.DrawLine(_Node.transform.position, this.transform.position);
         }
