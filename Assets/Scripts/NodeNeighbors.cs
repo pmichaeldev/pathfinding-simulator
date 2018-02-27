@@ -21,7 +21,7 @@ public class NodeNeighbors : MonoBehaviour
     /// <summary>
     /// Initializes the neighboring nodes on Start.
     /// </summary>
-    void Start()
+    void Awake()
     {
         Collider[] hitColliders = Physics.OverlapSphere(this.transform.position, RADIUS);
         foreach (var target in hitColliders)
