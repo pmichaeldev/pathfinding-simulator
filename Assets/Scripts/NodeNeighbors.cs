@@ -18,7 +18,9 @@ public class NodeNeighbors : MonoBehaviour
     private const float RADIUS = 2.0f;
     #endregion
 
-    // -- Initializes neighbor nodes on Start
+    /// <summary>
+    /// Initializes the neighboring nodes on Start.
+    /// </summary>
     void Start()
     {
         Collider[] hitColliders = Physics.OverlapSphere(this.transform.position, RADIUS);
@@ -50,8 +52,12 @@ public class NodeNeighbors : MonoBehaviour
         }
     }
 
-    // -- Returns TRUE if a ray, cast from origin -> to, is intercepted
-    // -- FALSE otherwise
+    /// <summary>
+    /// Checks if a ray cast from origin -> to is intercepted or not.
+    /// </summary>
+    /// <param name="origin">The origin we are checking for.</param>
+    /// <param name="to">The target to cast the ray to.</param>
+    /// <returns>True if intercepted, false otherwise.</returns>
     private bool IsIntercepted(GameObject origin, GameObject to)
     {
         RaycastHit hit;
@@ -64,7 +70,9 @@ public class NodeNeighbors : MonoBehaviour
         return false;
     }
 
-    // -- Draws the connected nodes with lines
+    /// <summary>
+    /// Draws the nodes as spheres, and lines connecting their edges (on play).
+    /// </summary>
     public void OnDrawGizmos()
     {
         Gizmos.color = Color.yellow;
