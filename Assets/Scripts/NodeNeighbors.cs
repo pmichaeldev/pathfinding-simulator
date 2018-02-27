@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class NodeNeighbors : MonoBehaviour
+public class NodeNeighbors : MonoBehaviour, System.IComparable<NodeNeighbors>
 {
     #region ABOUT
     /**
@@ -13,7 +13,16 @@ public class NodeNeighbors : MonoBehaviour
     #endregion
 
     #region VARIABLES
+    [Tooltip("The neighbors to this node.")]
     public List<GameObject> neighborNodes;
+    [Tooltip("The cost to reach this node, so far. This is h(n).")]
+    public float costSoFar = 0.0f; // By default 0.0f
+    [Tooltip("The total estimate value through this node. This would be g(n).")]
+    public float totalEstimateVal = 0.0f; // By default 0.0f
+    [Tooltip("Heuristic value (weight) of this node edge.")]
+    public float heuristicVal = 0.0f; // By default 0.0f
+    [Tooltip("The previous visited node to this one.")]
+    public GameObject previousNode;
 
     private const float RADIUS = 2.0f;
     #endregion
@@ -68,6 +77,31 @@ public class NodeNeighbors : MonoBehaviour
             return true;
         }
         return false;
+    }
+
+    /// <summary>
+    /// Returns the neighbor nodes to this node.
+    /// </summary>
+    /// <returns>The List of neighbor nodes.</returns>
+    public List<GameObject> GetNeighbors() { return neighborNodes; }
+
+    /// <summary>
+    /// Compares 'this' node to a passed other node by checking their total estimate costs and heuristic values.
+    /// </summary>
+    /// <param name="node">A node to compare with.</param>
+    /// <returns>An integer result of the comparison.</returns>
+    public int CompareTo(NodeNeighbors node)
+    {
+        int comparison = totalEstimateVal.CompareTo(node.totalEstimateVal);
+
+        if (totalEstimateVal != 0)
+        {
+            return comparison;
+        }
+        else
+        {
+            return heuristicVal.CompareTo(node.heuristicVal);
+        }
     }
 
     /// <summary>

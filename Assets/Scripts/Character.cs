@@ -14,10 +14,11 @@ public class Character : MonoBehaviour
     #region VARIABLES
     [Tooltip("The target this character will seek and arrive to.")]
     public GameObject target;
-    private Rigidbody mRigidBody;
+
+    private Pathfinding pFinding;
+    private List<GameObject> pathList;
 
     // -- Steering Arrive Variables
-    private float maxDistance = 0.0f;
     private float velocityThreshold = 0.0f;
     private float angleThreshold = 1.0f;
     private float maxAcceleration = 3.0f;
@@ -26,6 +27,7 @@ public class Character : MonoBehaviour
     private float time_to_target = 0.5f;
     private const float ANGLE_ARC = 45.0f;
     private const float MAX_VELOCITY = 1.0f;
+    private float maxDistance = 1.0f;
 
     // -- Steering Align variables
     // The maximum rotation acceleration radians
@@ -37,13 +39,13 @@ public class Character : MonoBehaviour
     // By default, it's 0, will change after 1st alignment
     private float angularVel = 0.0f;
     #endregion
-    
-    /// <summary>
-    /// Necessary variable initialization.
-    /// </summary>
-	void Start () {
-        mRigidBody = GetComponent<Rigidbody>();
-	}
+
+    void Start()
+    {
+        pFinding = GetComponent<Pathfinding>();
+        AcquirePathList();
+        GetNewTarget();
+    }
 
     /// <summary>
     /// Calls SteeringArriveBehavior at each frame if we have a target. 
@@ -51,18 +53,50 @@ public class Character : MonoBehaviour
     /// </summary>
     void Update()
     {
-        if (target)
+        // If we're within the node we were meant to reach, we reset the target
+        // Debug.Log(Vector3.Distance(this.transform.position, target.transform.position));
+        if (Vector3.Distance(this.transform.position, target.transform.position) <= 0.6f)
         {
-            // If we're within the node we were meant to reach, we reset the target
-            if ((this.transform.position - target.transform.position).magnitude < 0.5f)
-            {
-                target = null;
-            }
-            else
-            {
-                SteeringArriveBehavior();
-            }
+            Debug.Log("Target was called: " + target.gameObject.name);
+            GetNewTarget();
+            Debug.Log("New Target is called: " + target.gameObject.name);
+            SteeringArriveBehavior();
         }
+        else
+        {
+            SteeringArriveBehavior();
+        }
+        
+    }
+
+    private void AcquirePathList()
+    {
+        pathList = pFinding.pathList;
+    }
+
+    private void GetNewTarget()
+    {
+        // Set a target
+        if (target == null && pathList[1])
+        {
+            target = pathList[1];
+            pathList.Remove(pathList[0]);
+            pathList.Remove(pathList[0]);
+        }
+        else if (pathList[0] != null)
+        {
+            target = pathList[0];
+            pathList.Remove(target);
+        }
+    }
+
+    /// <summary>
+    /// Sets the target for the character to move to.
+    /// </summary>
+    /// <param name="_target">The target to move to.</param>
+    public void SetTarget(GameObject _target)
+    {
+        target = _target;
     }
 
     /// <summary>
@@ -126,24 +160,36 @@ public class Character : MonoBehaviour
 
         Vector3 direction = targetTransform - transform.position;
 
-        if (mVelocity.magnitude < velocityThreshold)
+        if (direction.magnitude < maxDistance)
         {
-            SteeringAlignBehavior(); // Align before continuing
-
-            if (Vector3.Angle(transform.forward, direction) <= angleThreshold)
+            // Step directly to target's position
+            transform.position = new Vector3(targetTransform.x, transform.position.y, targetTransform.z);
+        }
+        else if (mVelocity.magnitude < velocityThreshold)
+        {
+            if (direction.magnitude <= maxDistance)
             {
-                Vector3 accel = maxAcceleration * direction.normalized;
-                // Time.deltaTime since not in FixedUpdate
-                mVelocity += accel * Time.deltaTime;
+                // Step directly to target's position
+                transform.position = new Vector3(targetTransform.x, transform.position.y, targetTransform.z);
+            }
+            else
+            {
+                SteeringAlignBehavior(); // Align before continuing
 
-                if (mVelocity.magnitude > maxAcceleration)
+                if (Vector3.Angle(transform.forward, direction) <= angleThreshold)
                 {
-                    // Clamp the velocity so its magnitude is within maximum
-                    mVelocity = mVelocity.normalized * maxAcceleration;
-                }
+                    Vector3 accel = maxAcceleration * direction.normalized;
+                    // Time.deltaTime since not in FixedUpdate
+                    mVelocity += accel * Time.deltaTime;
 
-                transform.Translate(transform.forward * mVelocity.magnitude * Time.deltaTime, Space.World);
-                Debug.Log("Translated");
+                    if (mVelocity.magnitude > maxAcceleration)
+                    {
+                        // Clamp the velocity so its magnitude is within maximum
+                        mVelocity = mVelocity.normalized * maxAcceleration;
+                    }
+
+                    transform.Translate(transform.forward * mVelocity.magnitude * Time.deltaTime, Space.World);
+                }
             }
         }
         else
