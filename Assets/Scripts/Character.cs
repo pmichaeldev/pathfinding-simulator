@@ -27,7 +27,7 @@ public class Character : MonoBehaviour
     private float time_to_target = 0.5f;
     private const float ANGLE_ARC = 90.0f;
     private const float MAX_VELOCITY = 1.0f;
-    private float maxDistance = 1.5f;
+    private float maxDistance = 1.25f;
 
     /// ///////////////
     private float currentRotationVelocity = 0.0f;

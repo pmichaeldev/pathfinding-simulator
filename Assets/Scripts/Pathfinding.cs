@@ -25,7 +25,7 @@ public class Pathfinding : MonoBehaviour
     public List<GameObject> openList;
     [Tooltip("The closed list for nodes.")]
     public List<GameObject> closedList;
-    [Tooltip("Where we want to reach at the end.")]
+    [Tooltip("The goal node to reach.")]
     public GameObject goalNode;
 
     // Closest node to character
@@ -61,6 +61,7 @@ public class Pathfinding : MonoBehaviour
                 break;
             case GameController.AlgorithmChoice.AStar:
                 // Call A*
+                AStarAlgorithm();
                 break;
             case GameController.AlgorithmChoice.Cluster:
                 // Call Cluster
@@ -149,6 +150,100 @@ public class Pathfinding : MonoBehaviour
                     // Update the current node's attributes
                     UpdateNodeValues(currentNode, costSoFar, totalEstimateVal, heuristic, node);
                     
+                    // Add it to the open list
+                    openList.Add(currNeighbor);
+                }
+            }
+        }
+
+        // Sort the open list
+        openList.Sort((GameObject n, GameObject m) => { return n.GetComponent<NodeNeighbors>().costSoFar.CompareTo(m.GetComponent<NodeNeighbors>().costSoFar); });
+    }
+
+    /// <summary>
+    /// A* path finding algorithm. Will execute as intended by visiting nodes.
+    /// </summary>
+    private void AStarAlgorithm()
+    {
+        // Find closest node to the character
+        // By default the character will never be too far from a node.
+        GameObject closestNode = GetClosestNode();
+        startNode = closestNode;
+
+        if (closestNode == null)
+        {
+            Debug.LogError("ERROR::UNKNOWN_CLOSEST_NODE_TO_PLAYER");
+            return;
+        }
+
+        // TODO: Remove these Debug statements later.
+        Debug.Log("closestNode's x: " + closestNode.transform.position.x + ", y: " + closestNode.transform.position.y + ", z: " + closestNode.transform.position.z);
+        Debug.Log("closestNode's name: " + closestNode.name);
+        ////////////////////////////////////////////////////////
+
+        // Add this closest node to the Open List
+        openList.Add(closestNode);
+
+        while (openList.Count > 0 && openList[0] != goalNode)
+        {
+            // Visit the nodes
+            AStarVisitNode(openList[0]);
+        }
+
+        // Finally compute the final path list
+        ComputePathList();
+    }
+
+    /// <summary>
+    /// Similar to the Dijkstra algorithm, we visit the node passed.
+    /// This time, the heuristic is not 0, but rather the Euclidean Distance.
+    /// </summary>
+    /// <param name="node"></param>
+    private void AStarVisitNode(GameObject node)
+    {
+        // Now that we're visiting this node, add it to the closed list
+        closedList.Add(node);
+        // As such, remove it from the open list
+        openList.Remove(node);
+
+        List<GameObject> neighbors = node.GetComponent<NodeNeighbors>().GetNeighbors();
+
+        foreach (GameObject currNeighbor in neighbors)
+        {
+            if (Physics.Linecast(node.transform.position, currNeighbor.transform.position, Physics.DefaultRaycastLayers))
+            {
+
+                NodeNeighbors currentNode = currNeighbor.GetComponent<NodeNeighbors>();
+                float distance = (currNeighbor.transform.position - node.transform.position).magnitude;
+                float costSoFar = node.GetComponent<NodeNeighbors>().costSoFar + distance;
+                // Distance is the heuristic
+                float heuristic = Vector3.Distance(goalNode.transform.position, node.transform.position);
+                float totalEstimateVal = costSoFar + heuristic;
+
+                bool isInClosedList = closedList.Contains(currNeighbor);
+                bool isInOpenList = openList.Contains(currNeighbor);
+                bool foundBetter = totalEstimateVal < currentNode.totalEstimateVal;
+
+                if (isInClosedList && foundBetter)
+                {
+                    // Update the current node's attributes
+                    UpdateNodeValues(currentNode, costSoFar, totalEstimateVal, heuristic, node);
+
+                    // Remove it from the closed list
+                    closedList.Remove(currNeighbor);
+                    // Add it to the open list
+                    openList.Add(currNeighbor);
+                }
+                else if (isInOpenList && foundBetter)
+                {
+                    // Update the current node's attributes
+                    UpdateNodeValues(currentNode, costSoFar, totalEstimateVal, heuristic, node);
+                }
+                else if (!isInClosedList && !isInOpenList)
+                {
+                    // Update the current node's attributes
+                    UpdateNodeValues(currentNode, costSoFar, totalEstimateVal, heuristic, node);
+
                     // Add it to the open list
                     openList.Add(currNeighbor);
                 }
