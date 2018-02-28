@@ -14,6 +14,8 @@ public class GameController : MonoBehaviour
     #region VARIABLES
     public enum AlgorithmChoice { Dijkstra, AStar, Cluster };
     public static AlgorithmChoice currentAlgorithm;
+    [Tooltip("Choice of algorithm to start with. The default is Dijkstra's.")]
+    public AlgorithmChoice chosenAlgorithm = AlgorithmChoice.Dijkstra;
     public AlgorithmChoiceDisplay currentAlgorithmText;
     #endregion
 
@@ -22,7 +24,7 @@ public class GameController : MonoBehaviour
     /// </summary>
 	void Start () {
         // By default, we start with Dijkstra's algorithm for path finding
-        currentAlgorithm = AlgorithmChoice.Dijkstra;
+        currentAlgorithm = chosenAlgorithm;
         if (!currentAlgorithmText)
         {
             currentAlgorithmText = GameObject.Find("Current_Algorithm").GetComponent<AlgorithmChoiceDisplay>();
@@ -36,19 +38,22 @@ public class GameController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Alpha1))
         {
             // Swap to Dijkstra's algorithm
-            currentAlgorithm = AlgorithmChoice.Dijkstra;
+            chosenAlgorithm = AlgorithmChoice.Dijkstra;
+            currentAlgorithm = chosenAlgorithm;
             currentAlgorithmText.ChangeAlgorithm();
         }
         else if (Input.GetKeyDown(KeyCode.Alpha2))
         {
             // Swap to A* algorithm
-            currentAlgorithm = AlgorithmChoice.AStar;
+            chosenAlgorithm = AlgorithmChoice.AStar;
+            currentAlgorithm = chosenAlgorithm;
             currentAlgorithmText.ChangeAlgorithm();
         }
         else if (Input.GetKeyDown(KeyCode.Alpha3))
         {
             // Swap to Cluster algorithm
-            currentAlgorithm = AlgorithmChoice.Cluster;
+            chosenAlgorithm = AlgorithmChoice.Cluster;
+            currentAlgorithm = chosenAlgorithm;
             currentAlgorithmText.ChangeAlgorithm();
         }
 	}

@@ -18,7 +18,6 @@ public class Pathfinding : MonoBehaviour
     #region VARIABLES
     // -- All nodes in our scene
     private GameObject[] nodes;
-    private Character mCharacter;
 
     [Tooltip("The path list of nodes to visit.")]
     public List<GameObject> pathList;
@@ -39,7 +38,6 @@ public class Pathfinding : MonoBehaviour
     void Start()
     {
         nodes = GameObject.FindGameObjectsWithTag("Node");
-        mCharacter = GetComponent<Character>();
         ComputePath();
         DisplayPath();
     }

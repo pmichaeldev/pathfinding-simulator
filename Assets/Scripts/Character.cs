@@ -21,18 +21,22 @@ public class Character : MonoBehaviour
     // -- Steering Arrive Variables
     private float velocityThreshold = 0.0f;
     private float angleThreshold = 1.0f;
-    private float maxAcceleration = 3.0f;
+    private float maxAcceleration = 1.5f;
     private float slowDownRadius = 0.5f;
     private Vector3 mVelocity;
     private float time_to_target = 0.5f;
-    private const float ANGLE_ARC = 45.0f;
+    private const float ANGLE_ARC = 90.0f;
     private const float MAX_VELOCITY = 1.0f;
-    private float maxDistance = 1.0f;
+    private float maxDistance = 1.5f;
+
+    /// ///////////////
+    private float currentRotationVelocity = 0.0f;
+    private float currentVelocity = 0.0f;
 
     // -- Steering Align variables
     // The maximum rotation acceleration radians
     private float maxRotationAccelerationRads = 5.0f;
-    private float maxAngularVelocity = 90.0f;
+    private float maxAngularVelocity = 180.0f;
     private float maxAngleAcceleration = 90.0f;
     private float slowDownOrientation = 90.0f;
 
@@ -40,6 +44,9 @@ public class Character : MonoBehaviour
     private float angularVel = 0.0f;
     #endregion
 
+    /// <summary>
+    /// Acquires the Pathfinding object, then gets its path list, and finally finds a target node.
+    /// </summary>
     void Start()
     {
         pFinding = GetComponent<Pathfinding>();
@@ -53,27 +60,40 @@ public class Character : MonoBehaviour
     /// </summary>
     void Update()
     {
-        // If we're within the node we were meant to reach, we reset the target
-        // Debug.Log(Vector3.Distance(this.transform.position, target.transform.position));
-        if (Vector3.Distance(this.transform.position, target.transform.position) <= 0.6f)
+        if (target == null && pathList.Count > 0)
         {
-            Debug.Log("Target was called: " + target.gameObject.name);
             GetNewTarget();
-            Debug.Log("New Target is called: " + target.gameObject.name);
-            SteeringArriveBehavior();
         }
         else
         {
-            SteeringArriveBehavior();
+            if (target == null) return;
+
+            if (Vector3.Distance(transform.position, target.transform.position) > 1.0f)
+            {
+                SteeringArriveBehavior();
+            }
+            else if (pathList.Count > 0)
+            {
+                GetNewTarget();
+            }
+            else
+            {
+                target = null;
+            }
         }
-        
     }
 
+    /// <summary>
+    /// Acquires the path list from the Pathfinding script (which has been computed).
+    /// </summary>
     private void AcquirePathList()
     {
         pathList = pFinding.pathList;
     }
 
+    /// <summary>
+    /// Gets a new target to go towards.
+    /// </summary>
     private void GetNewTarget()
     {
         // Set a target
@@ -88,6 +108,10 @@ public class Character : MonoBehaviour
             target = pathList[0];
             pathList.Remove(target);
         }
+        else
+        {
+            target = null;
+        }
     }
 
     /// <summary>
@@ -98,7 +122,7 @@ public class Character : MonoBehaviour
     {
         target = _target;
     }
-
+    
     /// <summary>
     /// Executes Steering Align behavior according to the target.
     /// </summary>
@@ -160,12 +184,13 @@ public class Character : MonoBehaviour
 
         Vector3 direction = targetTransform - transform.position;
 
-        if (direction.magnitude < maxDistance)
+        
+        if (direction.magnitude <= maxDistance)
         {
             // Step directly to target's position
             transform.position = new Vector3(targetTransform.x, transform.position.y, targetTransform.z);
         }
-        else if (mVelocity.magnitude < velocityThreshold)
+        if (mVelocity.magnitude < velocityThreshold)
         {
             if (direction.magnitude <= maxDistance)
             {
