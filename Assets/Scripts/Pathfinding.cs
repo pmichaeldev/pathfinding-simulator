@@ -72,6 +72,9 @@ public class Pathfinding : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Dijkstra's path finding algorithm with null heuristic.
+    /// </summary>
     private void DijkstrasAlgorithm()
     {
         // Find closest node to the character
@@ -118,42 +121,38 @@ public class Pathfinding : MonoBehaviour
 
         foreach (GameObject currNeighbor in neighbors)
         {
-            // if(Physics.Linecast(node.transform.position, currNeighbor.transform.position, Physics.DefaultRaycastLayers))
-            //{
+            NodeNeighbors currentNode = currNeighbor.GetComponent<NodeNeighbors>();
+            float distance = (currNeighbor.transform.position - node.transform.position).magnitude;
+            float costSoFar = node.GetComponent<NodeNeighbors>().costSoFar + distance;
+            float heuristic = 0.0f; // As per instructed, 0 heuristic for Dijkstra's algorithm
+            float totalEstimateVal = costSoFar + heuristic;
 
-                NodeNeighbors currentNode = currNeighbor.GetComponent<NodeNeighbors>();
-                float distance = (currNeighbor.transform.position - node.transform.position).magnitude;
-                float costSoFar = node.GetComponent<NodeNeighbors>().costSoFar + distance;
-                float heuristic = 0.0f; // As per instructed, 0 heuristic for Dijkstra's algorithm
-                float totalEstimateVal = costSoFar + heuristic;
+            bool isInClosedList = closedList.Contains(currNeighbor);
+            bool isInOpenList = openList.Contains(currNeighbor);
 
-                bool isInClosedList = closedList.Contains(currNeighbor);
-                bool isInOpenList = openList.Contains(currNeighbor);
+            if (isInClosedList && (totalEstimateVal < currentNode.totalEstimateVal))
+            {
+                // Update the current node's attributes
+                UpdateNodeValues(currentNode, costSoFar, totalEstimateVal, heuristic, node);
 
-                if (isInClosedList && (totalEstimateVal < currentNode.totalEstimateVal))
-                {
-                    // Update the current node's attributes
-                    UpdateNodeValues(currentNode, costSoFar, totalEstimateVal, heuristic, node);
+                // Remove it from the closed list
+                closedList.Remove(currNeighbor);
+                // Add it to the open list
+                openList.Add(currNeighbor);
+            }
+            else if (isInOpenList && (totalEstimateVal < currentNode.totalEstimateVal))
+            {
+                // Update the current node's attributes
+                UpdateNodeValues(currentNode, costSoFar, totalEstimateVal, heuristic, node);
+            }
+            else if (!isInClosedList && !isInOpenList)
+            {
+                // Update the current node's attributes
+                UpdateNodeValues(currentNode, costSoFar, totalEstimateVal, heuristic, node);
 
-                    // Remove it from the closed list
-                    closedList.Remove(currNeighbor);
-                    // Add it to the open list
-                    openList.Add(currNeighbor);
-                }
-                else if (isInOpenList && (totalEstimateVal < currentNode.totalEstimateVal))
-                {
-                    // Update the current node's attributes
-                    UpdateNodeValues(currentNode, costSoFar, totalEstimateVal, heuristic, node);
-                }
-                else if (!isInClosedList && !isInOpenList)
-                {
-                    // Update the current node's attributes
-                    UpdateNodeValues(currentNode, costSoFar, totalEstimateVal, heuristic, node);
-                    
-                    // Add it to the open list
-                    openList.Add(currNeighbor);
-                }
-            //}
+                // Add it to the open list
+                openList.Add(currNeighbor);
+            }
         }
 
         // Sort the open list
@@ -210,43 +209,39 @@ public class Pathfinding : MonoBehaviour
 
         foreach (GameObject currNeighbor in neighbors)
         {
-            //if (Physics.Linecast(node.transform.position, currNeighbor.transform.position, Physics.DefaultRaycastLayers))
-            //{
+            NodeNeighbors currentNode = currNeighbor.GetComponent<NodeNeighbors>();
+            float distance = (currNeighbor.transform.position - node.transform.position).magnitude;
+            float costSoFar = node.GetComponent<NodeNeighbors>().costSoFar + distance;
+            // Distance is the heuristic
+            float heuristic = Vector3.Distance(goalNode.transform.position, currNeighbor.transform.position);
+            float totalEstimateVal = costSoFar + heuristic;
 
-                NodeNeighbors currentNode = currNeighbor.GetComponent<NodeNeighbors>();
-                float distance = (currNeighbor.transform.position - node.transform.position).magnitude;
-                float costSoFar = node.GetComponent<NodeNeighbors>().costSoFar + distance;
-                // Distance is the heuristic
-                float heuristic = Vector3.Distance(goalNode.transform.position, currNeighbor.transform.position);
-                float totalEstimateVal = costSoFar + heuristic;
+            bool isInClosedList = closedList.Contains(currNeighbor);
+            bool isInOpenList = openList.Contains(currNeighbor);
 
-                bool isInClosedList = closedList.Contains(currNeighbor);
-                bool isInOpenList = openList.Contains(currNeighbor);
+            if (isInClosedList && (totalEstimateVal < currentNode.totalEstimateVal))
+            {
+                // Update the current node's attributes
+                UpdateNodeValues(currentNode, costSoFar, totalEstimateVal, heuristic, node);
 
-                if (isInClosedList && (totalEstimateVal < currentNode.totalEstimateVal))
-                {
-                    // Update the current node's attributes
-                    UpdateNodeValues(currentNode, costSoFar, totalEstimateVal, heuristic, node);
+                // Remove it from the closed list
+                closedList.Remove(currNeighbor);
+                // Add it to the open list
+                openList.Add(currNeighbor);
+            }
+            else if (isInOpenList && (totalEstimateVal < currentNode.totalEstimateVal))
+            {
+                // Update the current node's attributes
+                UpdateNodeValues(currentNode, costSoFar, totalEstimateVal, heuristic, node);
+            }
+            else if (!isInClosedList && !isInOpenList)
+            {
+                // Update the current node's attributes
+                UpdateNodeValues(currentNode, costSoFar, totalEstimateVal, heuristic, node);
 
-                    // Remove it from the closed list
-                    closedList.Remove(currNeighbor);
-                    // Add it to the open list
-                    openList.Add(currNeighbor);
-                }
-                else if (isInOpenList && (totalEstimateVal < currentNode.totalEstimateVal))
-                {
-                    // Update the current node's attributes
-                    UpdateNodeValues(currentNode, costSoFar, totalEstimateVal, heuristic, node);
-                }
-                else if (!isInClosedList && !isInOpenList)
-                {
-                    // Update the current node's attributes
-                    UpdateNodeValues(currentNode, costSoFar, totalEstimateVal, heuristic, node);
-
-                    // Add it to the open list
-                    openList.Add(currNeighbor);
-                }
-            //}
+                // Add it to the open list
+                openList.Add(currNeighbor);
+            }
         }
 
         // Sort the open list
