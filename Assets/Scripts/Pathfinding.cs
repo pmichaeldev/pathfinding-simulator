@@ -118,7 +118,8 @@ public class Pathfinding : MonoBehaviour
 
         foreach (GameObject currNeighbor in neighbors)
         {
-            if(Physics.Linecast(node.transform.position, currNeighbor.transform.position, Physics.DefaultRaycastLayers)){
+            // if(Physics.Linecast(node.transform.position, currNeighbor.transform.position, Physics.DefaultRaycastLayers))
+            //{
 
                 NodeNeighbors currentNode = currNeighbor.GetComponent<NodeNeighbors>();
                 float distance = (currNeighbor.transform.position - node.transform.position).magnitude;
@@ -128,9 +129,8 @@ public class Pathfinding : MonoBehaviour
 
                 bool isInClosedList = closedList.Contains(currNeighbor);
                 bool isInOpenList = openList.Contains(currNeighbor);
-                bool foundBetter = totalEstimateVal < currentNode.totalEstimateVal;
 
-                if (isInClosedList && foundBetter)
+                if (isInClosedList && (totalEstimateVal < currentNode.totalEstimateVal))
                 {
                     // Update the current node's attributes
                     UpdateNodeValues(currentNode, costSoFar, totalEstimateVal, heuristic, node);
@@ -140,7 +140,7 @@ public class Pathfinding : MonoBehaviour
                     // Add it to the open list
                     openList.Add(currNeighbor);
                 }
-                else if (isInOpenList && foundBetter)
+                else if (isInOpenList && (totalEstimateVal < currentNode.totalEstimateVal))
                 {
                     // Update the current node's attributes
                     UpdateNodeValues(currentNode, costSoFar, totalEstimateVal, heuristic, node);
@@ -153,7 +153,7 @@ public class Pathfinding : MonoBehaviour
                     // Add it to the open list
                     openList.Add(currNeighbor);
                 }
-            }
+            //}
         }
 
         // Sort the open list
@@ -210,21 +210,20 @@ public class Pathfinding : MonoBehaviour
 
         foreach (GameObject currNeighbor in neighbors)
         {
-            if (Physics.Linecast(node.transform.position, currNeighbor.transform.position, Physics.DefaultRaycastLayers))
-            {
+            //if (Physics.Linecast(node.transform.position, currNeighbor.transform.position, Physics.DefaultRaycastLayers))
+            //{
 
                 NodeNeighbors currentNode = currNeighbor.GetComponent<NodeNeighbors>();
                 float distance = (currNeighbor.transform.position - node.transform.position).magnitude;
                 float costSoFar = node.GetComponent<NodeNeighbors>().costSoFar + distance;
                 // Distance is the heuristic
-                float heuristic = Vector3.Distance(goalNode.transform.position, node.transform.position);
+                float heuristic = Vector3.Distance(goalNode.transform.position, currNeighbor.transform.position);
                 float totalEstimateVal = costSoFar + heuristic;
 
                 bool isInClosedList = closedList.Contains(currNeighbor);
                 bool isInOpenList = openList.Contains(currNeighbor);
-                bool foundBetter = totalEstimateVal < currentNode.totalEstimateVal;
 
-                if (isInClosedList && foundBetter)
+                if (isInClosedList && (totalEstimateVal < currentNode.totalEstimateVal))
                 {
                     // Update the current node's attributes
                     UpdateNodeValues(currentNode, costSoFar, totalEstimateVal, heuristic, node);
@@ -234,7 +233,7 @@ public class Pathfinding : MonoBehaviour
                     // Add it to the open list
                     openList.Add(currNeighbor);
                 }
-                else if (isInOpenList && foundBetter)
+                else if (isInOpenList && (totalEstimateVal < currentNode.totalEstimateVal))
                 {
                     // Update the current node's attributes
                     UpdateNodeValues(currentNode, costSoFar, totalEstimateVal, heuristic, node);
@@ -247,7 +246,7 @@ public class Pathfinding : MonoBehaviour
                     // Add it to the open list
                     openList.Add(currNeighbor);
                 }
-            }
+            //}
         }
 
         // Sort the open list

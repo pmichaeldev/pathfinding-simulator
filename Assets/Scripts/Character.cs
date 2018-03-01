@@ -17,31 +17,23 @@ public class Character : MonoBehaviour
 
     private Pathfinding pFinding;
     private List<GameObject> pathList;
+    private bool calledMoveToTarget = false;
 
     // -- Steering Arrive Variables
     private float velocityThreshold = 0.0f;
     private float angleThreshold = 1.0f;
     private float maxAcceleration = 1.5f;
-    private float slowDownRadius = 0.5f;
+    private float slowDownRadius = 1.0f;
     private Vector3 mVelocity;
     private float time_to_target = 0.5f;
     private const float ANGLE_ARC = 90.0f;
-    private const float MAX_VELOCITY = 1.0f;
-    private float maxDistance = 1.25f;
+    private const float MAX_VELOCITY = 2.0f;
+    private float maxDistance = 0.50f;
 
-    /// ///////////////
-    private float currentRotationVelocity = 0.0f;
-    private float currentVelocity = 0.0f;
-
-    // -- Steering Align variables
-    // The maximum rotation acceleration radians
-    private float maxRotationAccelerationRads = 5.0f;
-    private float maxAngularVelocity = 180.0f;
-    private float maxAngleAcceleration = 90.0f;
-    private float slowDownOrientation = 90.0f;
-
-    // By default, it's 0, will change after 1st alignment
-    private float angularVel = 0.0f;
+    // -- Align Behavior Variables
+    Quaternion lookWhereYoureGoing;
+    Vector3 goalFacing;
+    float rotationSpeedRads = 1.5f;
     #endregion
 
     /// <summary>
@@ -60,6 +52,16 @@ public class Character : MonoBehaviour
     /// </summary>
     void Update()
     {
+        // If we still have a target but nothing's left in the path node
+        // Then this means we're near the end, and just need to get there
+        // So invoke a move to target just in case we didn't reach it yet.
+        if (target && pathList.Count == 0 && !calledMoveToTarget)
+        {
+            // Set the flag so we don't keep invoking
+            calledMoveToTarget = true;
+            Invoke("MoveToTarget", 2.0f);
+        }
+
         if (target == null && pathList.Count > 0)
         {
             GetNewTarget();
@@ -76,11 +78,17 @@ public class Character : MonoBehaviour
             {
                 GetNewTarget();
             }
-            else
-            {
-                target = null;
-            }
         }
+    }
+
+    /// <summary>
+    /// Moves the character to its target goal node after being Invoke'd.
+    /// </summary>
+    private void MoveToTarget()
+    {
+        this.transform.position = target.transform.position;
+        target = null;
+        calledMoveToTarget = false;
     }
 
     /// <summary>
@@ -122,57 +130,15 @@ public class Character : MonoBehaviour
     {
         target = _target;
     }
-    
+
     /// <summary>
-    /// Executes Steering Align behavior according to the target.
+    /// Aligns the character to where it's going.
     /// </summary>
-    private void SteeringAlignBehavior()
+    private void AlignBehavior()
     {
-        Vector3 targetTransform = target.transform.position;
-
-        // Acquire the cross product for the sign
-        float crossResult = Vector3.Cross(transform.forward, targetTransform).y;
-
-        int sign_bit = 0;
-
-        // Set the sign bit
-        if (crossResult > 0)
-        {
-            sign_bit = 1;
-        }
-        else
-        {
-            sign_bit = -1;
-        }
-
-        // Find the angle difference to align to
-        float differenceAngle = Vector3.Angle(transform.forward, targetTransform);
-
-        if (differenceAngle > maxRotationAccelerationRads)
-        {
-            float goalVelocity = (maxAngularVelocity * differenceAngle) / slowDownOrientation;
-            float goalAcceleration = (goalVelocity - angularVel) / time_to_target;
-
-            if (goalAcceleration > maxAngleAcceleration)
-            {
-                // Clamp the goal acceleraiton if it surpasses the maximum
-                goalAcceleration = maxAngleAcceleration;
-            }
-
-            // Multiply by time.deltatime since not in FixedUpdate for consistency
-            angularVel += goalAcceleration * Time.deltaTime;
-            if (angularVel > maxAngularVelocity)
-            {
-                // Clamp the angular velocity if it surpasses the maximum
-                angularVel = maxAngularVelocity;
-            }
-
-            transform.Rotate(transform.up, angularVel * Time.deltaTime * sign_bit, Space.World);
-        }
-        else
-        {
-            transform.rotation = Quaternion.LookRotation(targetTransform);
-        }
+        goalFacing = (target.transform.position - transform.position).normalized;
+        lookWhereYoureGoing = Quaternion.LookRotation(goalFacing, Vector3.up);
+        transform.rotation = Quaternion.RotateTowards(transform.rotation, lookWhereYoureGoing, rotationSpeedRads);
     }
 
     /// <summary>
@@ -199,7 +165,9 @@ public class Character : MonoBehaviour
             }
             else
             {
-                SteeringAlignBehavior(); // Align before continuing
+                // Begin by aligning to the target
+                AlignBehavior();
+
 
                 if (Vector3.Angle(transform.forward, direction) <= angleThreshold)
                 {
@@ -244,8 +212,9 @@ public class Character : MonoBehaviour
 
                 transform.Translate(transform.forward * mVelocity.magnitude * Time.deltaTime, Space.World);
             }
+
             // Align one last time.
-            SteeringAlignBehavior();
+            AlignBehavior();
         }
     }
 	
