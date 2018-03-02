@@ -23,15 +23,32 @@ public class NodeNeighbors : MonoBehaviour, System.IComparable<NodeNeighbors>
     public float heuristicVal = 0.0f; // By default 0.0f
     [Tooltip("The previous visited node to this one.")]
     public GameObject previousNode;
+    // -- The neighboring cluster nodes to 'this' node
+    public List<GameObject> neighborClusterNodes;
+    [Tooltip("The cluster that this node belongs to.")]
+    public Cluster cluster;
 
     private const float RADIUS = 2.0f;
     #endregion
 
     /// <summary>
-    /// Initializes the neighboring nodes on Start.
+    /// Initializes the neighboring nodes and its cluster.
     /// </summary>
     void Awake()
     {
+        // Find the node's neighbors first
+        FindNeighbors();
+
+        // Then find its belonging cluster
+        FindCluster();
+    }
+
+    /// <summary>
+    /// Finds and sets this node's neighbor nodes.
+    /// </summary>
+    private void FindNeighbors()
+    {
+        // -- FIND THE NODE'S NEIGHBORS -- //
         Collider[] hitColliders = Physics.OverlapSphere(this.transform.position, RADIUS);
         foreach (var target in hitColliders)
         {
@@ -57,6 +74,27 @@ public class NodeNeighbors : MonoBehaviour, System.IComparable<NodeNeighbors>
                         neighborNodes.Add(target.gameObject);
                     }
                 }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Finds this node's associated cluster by firing a downwards ray.
+    /// </summary>
+    private void FindCluster()
+    {
+        RaycastHit hit;
+        if (Physics.Raycast(transform.position, -Vector3.up, out hit))
+        {
+            Cluster cluster = hit.collider.transform.GetComponent<Cluster>();
+            ChildCluster clusterChild = hit.collider.transform.GetComponent<ChildCluster>();
+            if (cluster != null)
+            {
+                cluster.BindClusterNode(this.gameObject);
+            }
+            else if (clusterChild != null)
+            {
+                clusterChild.BindClusterNode(this.gameObject);
             }
         }
     }
@@ -102,6 +140,30 @@ public class NodeNeighbors : MonoBehaviour, System.IComparable<NodeNeighbors>
         {
             return heuristicVal.CompareTo(node.heuristicVal);
         }
+    }
+
+    /// <summary>
+    /// Adds a neighboring cluster node to this node's neighboring cluster nodes list.
+    /// </summary>
+    /// <param name="node">The node to be added.</param>
+    public void AddNeighborClusterNode(GameObject node)
+    {
+        neighborClusterNodes.Add(node);
+    }
+
+    /// <summary>
+    /// Returns the neighbor cluster nodes list to this node.
+    /// </summary>
+    /// <returns>The neighbor cluster nodes list.</returns>
+    public List<GameObject> GetNeighborClusterNodesList() { return neighborClusterNodes; }
+
+    /// <summary>
+    /// Sets this node's cluster.
+    /// </summary>
+    /// <param name="cluster">The cluster that this node will belong to.</param>
+    public void SetCluster(Cluster cluster)
+    {
+        this.cluster = cluster;
     }
 
     /// <summary>

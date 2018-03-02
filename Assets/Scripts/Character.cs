@@ -52,6 +52,28 @@ public class Character : MonoBehaviour
     /// </summary>
     void Update()
     {
+        // Left click
+        if (Input.GetMouseButtonDown(0))
+        {
+            // Find nearest node to be our target
+            Ray mouseClickRay = Camera.main.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+            if (Physics.Raycast(mouseClickRay, out hit))
+            {
+                if (hit.collider.gameObject.GetComponent<NodeNeighbors>())
+                {
+                    GameObject targetNode = hit.collider.gameObject;
+
+                    pFinding.goalNode = targetNode;
+                    pFinding.ComputePath();
+                    if (pathList.Count != 0)
+                    {
+                        SetTarget(pathList[1]);
+                    }
+                }
+            }
+        }
+
         // If we still have a target but nothing's left in the path node
         // Then this means we're near the end, and just need to get there
         // So invoke a move to target just in case we didn't reach it yet.

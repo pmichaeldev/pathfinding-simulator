@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 public class Pathfinding : MonoBehaviour
 {
@@ -28,6 +29,9 @@ public class Pathfinding : MonoBehaviour
     [Tooltip("The goal node to reach.")]
     public GameObject goalNode;
 
+    // Backup for the path list to clear render
+    private List<GameObject> visitedPathList = new List<GameObject>();
+
     // Closest node to character
     private GameObject startNode;
     #endregion
@@ -38,19 +42,18 @@ public class Pathfinding : MonoBehaviour
     void Start()
     {
         nodes = GameObject.FindGameObjectsWithTag("Node");
-        ComputePath();
-        DisplayPath();
     }
 
     /// <summary>
     /// Clears the lists and calls appropriate algorithm function.
     /// </summary>
-    private void ComputePath()
+    public void ComputePath()
     {
+        // Clear displayed paths, if any
+        ClearDisplayedPath();
+
         // Clear the lists first
-        pathList.Clear();
-        openList.Clear();
-        closedList.Clear();
+        ClearTheLists();
 
         // Select which algorithm we use
         switch (GameController.currentAlgorithm)
@@ -65,11 +68,15 @@ public class Pathfinding : MonoBehaviour
                 break;
             case GameController.AlgorithmChoice.Cluster:
                 // Call Cluster
+                ClusterAlgorithm();
                 break;
             default:
                 Debug.LogError("ERROR::UNKNWON_CURRENT_ALGORITHM");
                 break;
         }
+
+        // Finally display the path
+        DisplayPath();
     }
 
     /// <summary>
@@ -117,6 +124,7 @@ public class Pathfinding : MonoBehaviour
         // As such, remove it from the open list
         openList.Remove(node);
 
+        // Acquire the neighboring nodes
         List<GameObject> neighbors = node.GetComponent<NodeNeighbors>().GetNeighbors();
 
         foreach (GameObject currNeighbor in neighbors)
@@ -124,7 +132,7 @@ public class Pathfinding : MonoBehaviour
             NodeNeighbors currentNode = currNeighbor.GetComponent<NodeNeighbors>();
             float distance = (currNeighbor.transform.position - node.transform.position).magnitude;
             float costSoFar = node.GetComponent<NodeNeighbors>().costSoFar + distance;
-            float heuristic = 0.0f; // As per instructed, 0 heuristic for Dijkstra's algorithm
+            float heuristic = 0.0f; // 0 heuristic for Dijkstra's algorithm since it's basically A* but with no h(n)
             float totalEstimateVal = costSoFar + heuristic;
 
             bool isInClosedList = closedList.Contains(currNeighbor);
@@ -205,13 +213,15 @@ public class Pathfinding : MonoBehaviour
         // As such, remove it from the open list
         openList.Remove(node);
 
+        // Acquire the neighboring nodes
         List<GameObject> neighbors = node.GetComponent<NodeNeighbors>().GetNeighbors();
 
         foreach (GameObject currNeighbor in neighbors)
         {
             NodeNeighbors currentNode = currNeighbor.GetComponent<NodeNeighbors>();
-            float distance = (currNeighbor.transform.position - node.transform.position).magnitude;
+            float distance = Vector3.Distance(currNeighbor.transform.position, node.transform.position);
             float costSoFar = node.GetComponent<NodeNeighbors>().costSoFar + distance;
+
             // Distance is the heuristic
             float heuristic = Vector3.Distance(goalNode.transform.position, currNeighbor.transform.position);
             float totalEstimateVal = costSoFar + heuristic;
@@ -246,6 +256,90 @@ public class Pathfinding : MonoBehaviour
 
         // Sort the open list
         openList.Sort((GameObject n, GameObject m) => { return n.GetComponent<NodeNeighbors>().costSoFar.CompareTo(m.GetComponent<NodeNeighbors>().costSoFar); });
+    }
+
+    /// <summary>
+    /// The cluster search algorithm.
+    /// </summary>
+    private void ClusterAlgorithm()
+    {
+        // First find closest node
+        GameObject closestNode = GetClosestNode();
+        startNode = closestNode;
+
+        // Get the clusters of our start and goal nodes
+        Cluster startCluster = startNode.GetComponent<NodeNeighbors>().cluster;
+        Cluster targetCluster = goalNode.GetComponent<NodeNeighbors>().cluster;
+
+        // If they're in the SAME cluster, just do regular A*
+        if (startCluster == targetCluster)
+        {
+            AStarAlgorithm();
+        }
+        else
+        {
+            // Else they're in different clusters
+
+            // Find the cluster path
+            List<GameObject> clusterPath = new List<GameObject>();
+
+            if (startCluster.pathToCluster.TryGetValue(targetCluster, out clusterPath))
+            {
+                // Backups
+                GameObject _start = startNode;
+                GameObject _goal = goalNode;
+
+                // Clear lists
+                ClearTheLists();
+
+                // Acquire beginning open and closed lists from an A* search
+                List<GameObject> begin = ComputeAStar(_start, clusterPath[0]);
+                List<GameObject> _open = new List<GameObject>(openList);
+                List<GameObject> _closed = new List<GameObject>(closedList);
+
+                // Clear the lists again
+                ClearTheLists();
+
+                // Acquire the goal-side open and closed lists from an A* search
+                List<GameObject> _end = ComputeAStar(clusterPath[clusterPath.Count - 1], _goal);
+                List<GameObject> _endOpen = new List<GameObject>(openList);
+                List<GameObject> _endClosed = new List<GameObject>(closedList);
+
+                // Clear for one final time before setting the paths
+                ClearTheLists();
+
+                // -- Compute the list for the path
+                // Adds the begin path (from start to beginning of the cluster path)
+                // Then adds the cluster path itself to reach the destination
+                pathList.AddRange(begin);
+                pathList.AddRange(clusterPath);
+
+                // Add the appropriate values to the open list
+                openList.AddRange(_open);
+                openList.AddRange(_endOpen);
+
+                // Add the appropriate values to the closed list
+                closedList.AddRange(_closed);
+                closedList.AddRange(_endClosed);
+
+                // Reset original start and goal nodes
+                startNode = _start;
+                goalNode = _goal;
+
+                // Set the target to arrive to as null since it will be set later
+                GetComponent<Character>().target = null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Clears the open, closed, and path lists.
+    /// </summary>
+    private void ClearTheLists()
+    {
+        openList.Clear();
+        closedList.Clear();
+        pathList.Clear();
     }
 
     /// <summary>
@@ -315,6 +409,72 @@ public class Pathfinding : MonoBehaviour
     }
 
     /// <summary>
+    /// Computes the A* algorithm's candidate possible shortest path.
+    /// </summary>
+    /// <param name="start">Where we begin the search.</param>
+    /// <param name="goal">The goal node to reach.</param>
+    /// <returns>The possible shortest path.</returns>
+    private List<GameObject> ComputeAStarWithReturn(GameObject start, GameObject goal)
+    {
+        // Set start and goal nodes
+        startNode = start;
+        goalNode = goal;
+
+        ClearTheLists();
+
+        // Compute the A* algorithm path
+        AStarAlgorithm();
+
+        return new List<GameObject>(pathList);
+    }
+
+    /// <summary>
+    /// Public function that calls ComputeAStarWithReturn.
+    /// </summary>
+    /// <param name="startNode">Where we begin the search.</param>
+    /// <param name="endNode">The goal node to reach.</param>
+    /// <returns>A possible shortest path.</returns>
+    public List<GameObject> ComputeAStar(GameObject startNode, GameObject endNode)
+    {
+        List<GameObject> result = ComputeAStarWithReturn(startNode, endNode);
+
+        CleanUp();
+
+        return result;
+    }
+
+    /// <summary>
+    /// Cleans up the lists and resets goal node and start node.
+    /// </summary>
+    private void CleanUp()
+    {
+        goalNode = null;
+        ClearTheLists();
+        startNode = GetClosestNode();
+        GetComponent<Character>().target = null;
+        goalNode = startNode.GetComponent<NodeNeighbors>().GetNeighbors()[0];
+        startNode.GetComponent<NodeNeighbors>().costSoFar = 0.0f;
+        startNode.GetComponent<NodeNeighbors>().heuristicVal = Vector3.Distance(goalNode.transform.position, startNode.transform.position);
+    }
+
+    /// <summary>
+    /// Given a path list (generated from A*), we compute total costs (Euclidean distance).
+    /// </summary>
+    /// <param name="path">A path list.</param>
+    /// <returns>Total cost of this path.</returns>
+    public float GetTotalCostOfPath(List<GameObject> path)
+    {
+        float total = 0.0f;
+
+        for (var i = 0; i < path.Count - 1; i++)
+        {
+            total += Vector3.Distance(path[i].transform.position, path[i + 1].transform.position);
+        }
+
+        return total;
+    }
+
+    /// <summary>
     /// Displays (re-enables) visited path nodes.
     /// </summary>
     private void DisplayPath()
@@ -322,6 +482,23 @@ public class Pathfinding : MonoBehaviour
         foreach (GameObject node in pathList)
         {
             node.GetComponent<Renderer>().enabled = true;
+            visitedPathList.Add(node);
         }
+    }
+
+    /// <summary>
+    /// Clears the displayed path if it exists.
+    /// </summary>
+    private void ClearDisplayedPath()
+    {
+        if (visitedPathList.Count > 0)  
+        {
+            foreach (GameObject node in visitedPathList)
+            {
+                node.GetComponent<Renderer>().enabled = false;
+            }
+        }
+        // Finally clear the visited path list
+        visitedPathList.Clear();
     }
 }
