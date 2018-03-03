@@ -41,7 +41,7 @@ public class ClusterManager : MonoBehaviour {
         // -- NOTE: This algorithm's worst time complexity is of O(n^4).
         // TODO: Consider optimizing it by statically setting distances/minima. This can reduce it to O(n^2).
 
-        float minDistance = float.MinValue;
+        float minDistance = float.MaxValue;
 
         // Go through each cluster's neighbor clusters
         foreach (Cluster currCluster in clusters)

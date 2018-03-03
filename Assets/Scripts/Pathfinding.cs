@@ -309,10 +309,10 @@ public class Pathfinding : MonoBehaviour
                 ClearTheLists();
 
                 // -- Compute the list for the path
-                // Adds the begin path (from start to beginning of the cluster path)
-                // Then adds the cluster path itself to reach the destination
-                pathList.AddRange(begin);
-                pathList.AddRange(clusterPath);
+                // Sort the end list
+                _end.Sort((GameObject n, GameObject m) => { return n.GetComponent<NodeNeighbors>().costSoFar.CompareTo(m.GetComponent<NodeNeighbors>().costSoFar); });
+                // Then add it to the path
+                pathList.AddRange(_end);
 
                 // Add the appropriate values to the open list
                 openList.AddRange(_open);

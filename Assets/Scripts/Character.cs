@@ -18,6 +18,7 @@ public class Character : MonoBehaviour
     private Pathfinding pFinding;
     private List<GameObject> pathList;
     private bool calledMoveToTarget = false;
+    private GameObject[] nodes;
 
     // -- Steering Arrive Variables
     private float velocityThreshold = 0.0f;
@@ -42,6 +43,7 @@ public class Character : MonoBehaviour
     void Start()
     {
         pFinding = GetComponent<Pathfinding>();
+        nodes = GameObject.FindGameObjectsWithTag("Node");
         AcquirePathList();
         GetNewTarget();
     }
@@ -62,7 +64,24 @@ public class Character : MonoBehaviour
             {
                 if (hit.collider.gameObject.GetComponent<NodeNeighbors>())
                 {
-                    GameObject targetNode = hit.collider.gameObject;
+                    GameObject closestNode = null;
+                    if (nodes == null || nodes.Length <= 0) return;
+                    else
+                    {
+                        float shortestDistance = float.MaxValue;
+                        float dist = 0.0f;
+                        foreach (GameObject _Node in nodes)
+                        {
+                            dist = Vector3.Distance(hit.collider.gameObject.transform.position, _Node.transform.position);
+                            if (dist < shortestDistance)
+                            {
+                                shortestDistance = dist;
+                                closestNode = _Node;
+                            }
+                        }
+                    }
+                    
+                    GameObject targetNode = closestNode;
 
                     pFinding.goalNode = targetNode;
                     pFinding.ComputePath();
@@ -108,7 +127,7 @@ public class Character : MonoBehaviour
     /// </summary>
     private void MoveToTarget()
     {
-        this.transform.position = target.transform.position;
+        this.transform.position = new Vector3(target.transform.position.x, 0.0f, target.transform.position.z);
         target = null;
         calledMoveToTarget = false;
     }
@@ -176,14 +195,14 @@ public class Character : MonoBehaviour
         if (direction.magnitude <= maxDistance)
         {
             // Step directly to target's position
-            transform.position = new Vector3(targetTransform.x, transform.position.y, targetTransform.z);
+            transform.position = new Vector3(targetTransform.x, 0.0f, targetTransform.z);
         }
         if (mVelocity.magnitude < velocityThreshold)
         {
             if (direction.magnitude <= maxDistance)
             {
                 // Step directly to target's position
-                transform.position = new Vector3(targetTransform.x, transform.position.y, targetTransform.z);
+                transform.position = new Vector3(targetTransform.x, 0.0f, targetTransform.z);
             }
             else
             {
