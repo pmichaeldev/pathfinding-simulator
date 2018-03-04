@@ -25,8 +25,14 @@ To change it, please follow the on-screen instructions, i.e.:
 
 - Press 'T' to change the floor's appearance from the default of showing the cluster zones, to simply the textured flooring.
 
-
 In order to set a goal node, please click anywhere in the main scene's level and it will find the closest node to your click.
+
+
+What is not mentioned in the in-game overlay is to press the following to change scenes (or levels):
+
+- 'Q' to load (or reload) the MainScene without chasing.
+
+- 'W' to load (or reload) the ChaseScene which includes chasing.
 
 
 # ASSETS CREDITS
