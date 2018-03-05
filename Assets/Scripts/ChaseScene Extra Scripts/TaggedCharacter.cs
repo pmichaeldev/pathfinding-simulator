@@ -2,21 +2,25 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Character : MonoBehaviour
-{
+public class TaggedCharacter : MonoBehaviour {
+
     #region ABOUT
     /**
-     * Character default script.
-     * Handles movements.
+     * The tagged character.
+     * Will flee from the chasing enemy.
      */
     #endregion
 
     #region VARIABLES
     [Tooltip("The target this character will seek and arrive to.")]
     public GameObject target;
+    [Tooltip("The character chasing this tagged character.")]
+    public GameObject chasingEnemy;
 
-    private Pathfinding pFinding;
-    private List<GameObject> pathList;
+    private List<GameObject> visitedNodes = new List<GameObject>();
+    // After visiting nodes 5 times (when it is <= 0), clear the visitedNodes list
+    private int visitedNodeClearCounter = 5;
+
     private bool calledMoveToTarget = false;
     private GameObject[] nodes;
 
@@ -38,88 +42,112 @@ public class Character : MonoBehaviour
     #endregion
 
     /// <summary>
-    /// Acquires the Pathfinding object, then gets its path list, and finally finds a target node.
+    /// Finds the chasing enemy, if not set, and gets all nodes.
     /// </summary>
     void Start()
     {
-        pFinding = GetComponent<Pathfinding>();
+        if (!chasingEnemy)
+        {
+            chasingEnemy = GameObject.FindGameObjectWithTag("Chasing");
+        }
+
         nodes = GameObject.FindGameObjectsWithTag("Node");
-        AcquirePathList();
-        GetNewTarget();
     }
 
     /// <summary>
-    /// Calls SteeringArriveBehavior at each frame if we have a target. 
-    /// Additionally also handles unsetting targets if we've reached it.
+    /// Calls SteeringArriveBehavior at each frame to the closest node.
+    /// No path finding is necessary.
     /// </summary>
     void Update()
     {
-        // Left click
-        if (Input.GetMouseButtonDown(0))
+        if (chasingEnemy.GetComponent<ChasingCharacter>().currState == ChasingCharacter.ChasingState.CaughtTarget)
         {
-            // Find nearest node to be our target
-            Ray mouseClickRay = Camera.main.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
-            if (Physics.Raycast(mouseClickRay, out hit))
-            {
-                if (hit.collider.gameObject.GetComponent<NodeNeighbors>())
-                {
-                    GameObject closestNode = null;
-                    if (nodes == null || nodes.Length <= 0) return;
-                    else
-                    {
-                        float shortestDistance = float.MaxValue;
-                        float dist = 0.0f;
-                        foreach (GameObject _Node in nodes)
-                        {
-                            dist = Vector3.Distance(hit.collider.gameObject.transform.position, _Node.transform.position);
-                            if (dist < shortestDistance)
-                            {
-                                shortestDistance = dist;
-                                closestNode = _Node;
-                            }
-                        }
-                    }
-                    
-                    GameObject targetNode = closestNode;
-
-                    pFinding.goalNode = targetNode;
-                    pFinding.ComputePath();
-                    if (pathList.Count != 0)
-                    {
-                        SetTarget(pathList[1]);
-                    }
-                }
-            }
+            mVelocity = Vector3.zero;
+            return;
         }
 
-        // If we still have a target but nothing's left in the path node
-        // Then this means we're near the end, and just need to get there
-        // So invoke a move to target just in case we didn't reach it yet.
-        if (target && pathList.Count == 0 && !calledMoveToTarget)
+        // If no target is set, find the closest neighbor node
+        if (!target)
         {
-            // Set the flag so we don't keep invoking
-            calledMoveToTarget = true;
-            Invoke("MoveToTarget", 2.0f);
-        }
-
-        if (target == null && pathList.Count > 0)
-        {
-            GetNewTarget();
+            // Target is a node with neighbors
+            target = GetClosestNode();
+            FindFarthestNeighborFromChasing();
+            SteeringArriveBehavior();
         }
         else
         {
-            if (target == null) return;
-
-            if (Vector3.Distance(transform.position, target.transform.position) > 1.0f)
+            // If we're very close to the target, we reset it and get a new one
+            if (Vector3.Distance(this.transform.position, target.transform.position) < 0.5f)
+            {
+                MoveToTarget();
+                FindFarthestNeighborFromChasing();
+            }
+            else
             {
                 SteeringArriveBehavior();
             }
-            else if (pathList.Count > 0)
+        }
+    }
+
+    /// <summary>
+    /// Gets the node closest to the player.
+    /// </summary>
+    /// <returns>The closest node to the player.</returns>
+    private GameObject GetClosestNode()
+    {
+        if (nodes == null || nodes.Length <= 0) return null;
+        else
+        {
+            float shortestDistance = float.MaxValue;
+            float dist = 0.0f;
+            GameObject closestNode = null;
+            foreach (GameObject _Node in nodes)
             {
-                GetNewTarget();
+                dist = Vector3.Distance(this.transform.position, _Node.transform.position);
+                if (dist < shortestDistance)
+                {
+                    shortestDistance = dist;
+                    closestNode = _Node;
+                }
+            }
+            return closestNode;
+        }
+    }
+
+    /// <summary>
+    /// Finds the farthest node from the chasing enemy.
+    /// </summary>
+    private void FindFarthestNeighborFromChasing()
+    {
+        if (visitedNodeClearCounter <= 0)
+        {
+            visitedNodes.Clear();
+            visitedNodeClearCounter = 5;
+        }
+
+        // Add the node to our visited nodes list
+        visitedNodes.Add(target);
+
+        float maxDist = float.MinValue;
+        GameObject farthestTarget = null;
+
+        // Find farthest node
+        foreach (GameObject _node in target.GetComponent<NodeNeighbors>().GetNeighbors())
+        {
+            float newMaxDist = Vector3.Distance(_node.transform.position, chasingEnemy.transform.position);
+            if (newMaxDist > maxDist && !visitedNodes.Contains(_node))
+            {
+                maxDist = newMaxDist;
+                farthestTarget = _node;
             }
         }
+
+        // Set target to that farthest node & decrement the visitedNodeClearCounter
+        target = farthestTarget;
+        // Set a new target for the chasing character
+        chasingEnemy.GetComponent<ChasingCharacter>().SetTarget(target);
+        // Decrement node clear counter
+        visitedNodeClearCounter--;
     }
 
     /// <summary>
@@ -130,37 +158,6 @@ public class Character : MonoBehaviour
         this.transform.position = new Vector3(target.transform.position.x, 0.0f, target.transform.position.z);
         target = null;
         calledMoveToTarget = false;
-    }
-
-    /// <summary>
-    /// Acquires the path list from the Pathfinding script (which has been computed).
-    /// </summary>
-    private void AcquirePathList()
-    {
-        pathList = pFinding.pathList;
-    }
-
-    /// <summary>
-    /// Gets a new target to go towards.
-    /// </summary>
-    private void GetNewTarget()
-    {
-        // Set a target
-        if (target == null && pathList[1])
-        {
-            target = pathList[1];
-            pathList.Remove(pathList[0]);
-            pathList.Remove(pathList[0]);
-        }
-        else if (pathList[0] != null)
-        {
-            target = pathList[0];
-            pathList.Remove(target);
-        }
-        else
-        {
-            target = null;
-        }
     }
 
     /// <summary>
@@ -191,7 +188,7 @@ public class Character : MonoBehaviour
 
         Vector3 direction = targetTransform - transform.position;
 
-        
+
         if (direction.magnitude <= maxDistance)
         {
             // Step directly to target's position

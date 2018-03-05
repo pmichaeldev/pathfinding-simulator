@@ -2,18 +2,21 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Character : MonoBehaviour
-{
+public class ChasingCharacter : MonoBehaviour {
     #region ABOUT
     /**
-     * Character default script.
-     * Handles movements.
+     * The chasing character.
+     * He will chase, while using A* path finding, the tagged character.
      */
     #endregion
 
     #region VARIABLES
-    [Tooltip("The target this character will seek and arrive to.")]
+    [Tooltip("The target node that this character will arrive to.")]
     public GameObject target;
+
+    public enum ChasingState { Chasing, Idling, CaughtTarget, NewTarget };
+    [Tooltip("The state that the chasing character is in.")
+    public ChasingState currState = ChasingState.Idling;
 
     private Pathfinding pFinding;
     private List<GameObject> pathList;
@@ -21,14 +24,14 @@ public class Character : MonoBehaviour
     private GameObject[] nodes;
 
     // -- Steering Arrive Variables
-    private float velocityThreshold = 0.0f;
+    private float velocityThreshold = 0.5f;
     private float angleThreshold = 1.0f;
-    private float maxAcceleration = 1.5f;
+    private float maxAcceleration = 1.0f;
     private float slowDownRadius = 1.0f;
     private Vector3 mVelocity;
-    private float time_to_target = 0.5f;
+    private float time_to_target = 2.0f;
     private const float ANGLE_ARC = 90.0f;
-    private const float MAX_VELOCITY = 2.0f;
+    private const float MAX_VELOCITY = 1.5f;
     private float maxDistance = 0.50f;
 
     // -- Align Behavior Variables
@@ -44,8 +47,6 @@ public class Character : MonoBehaviour
     {
         pFinding = GetComponent<Pathfinding>();
         nodes = GameObject.FindGameObjectsWithTag("Node");
-        AcquirePathList();
-        GetNewTarget();
     }
 
     /// <summary>
@@ -54,71 +55,29 @@ public class Character : MonoBehaviour
     /// </summary>
     void Update()
     {
-        // Left click
-        if (Input.GetMouseButtonDown(0))
+        if (currState == ChasingState.CaughtTarget)
         {
-            // Find nearest node to be our target
-            Ray mouseClickRay = Camera.main.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
-            if (Physics.Raycast(mouseClickRay, out hit))
-            {
-                if (hit.collider.gameObject.GetComponent<NodeNeighbors>())
-                {
-                    GameObject closestNode = null;
-                    if (nodes == null || nodes.Length <= 0) return;
-                    else
-                    {
-                        float shortestDistance = float.MaxValue;
-                        float dist = 0.0f;
-                        foreach (GameObject _Node in nodes)
-                        {
-                            dist = Vector3.Distance(hit.collider.gameObject.transform.position, _Node.transform.position);
-                            if (dist < shortestDistance)
-                            {
-                                shortestDistance = dist;
-                                closestNode = _Node;
-                            }
-                        }
-                    }
-                    
-                    GameObject targetNode = closestNode;
-
-                    pFinding.goalNode = targetNode;
-                    pFinding.ComputePath();
-                    if (pathList.Count != 0)
-                    {
-                        SetTarget(pathList[1]);
-                    }
-                }
-            }
+            Debug.Log("Caught target!");
+            currState = ChasingState.Idling;
         }
 
-        // If we still have a target but nothing's left in the path node
-        // Then this means we're near the end, and just need to get there
-        // So invoke a move to target just in case we didn't reach it yet.
-        if (target && pathList.Count == 0 && !calledMoveToTarget)
+        // If we reach the target, or near him, we set the state to caught the target
+        if (Vector3.Distance(this.transform.position, target.transform.position) <= 0.5f)
         {
-            // Set the flag so we don't keep invoking
-            calledMoveToTarget = true;
-            Invoke("MoveToTarget", 2.0f);
+            currState = ChasingState.CaughtTarget;
         }
 
-        if (target == null && pathList.Count > 0)
+        if (currState == ChasingState.NewTarget)
         {
-            GetNewTarget();
+            // Since we have a new target, need to re-path
+            currState = ChasingState.Chasing;
         }
-        else
+        else if (currState == ChasingState.Chasing)
         {
-            if (target == null) return;
-
-            if (Vector3.Distance(transform.position, target.transform.position) > 1.0f)
-            {
-                SteeringArriveBehavior();
-            }
-            else if (pathList.Count > 0)
-            {
-                GetNewTarget();
-            }
+            pFinding.goalNode = target;
+            pFinding.ComputePath(); // Compute the path list
+            AcquirePathList(); // Then set our path list to it
+            SteeringArriveBehavior();
         }
     }
 
@@ -141,35 +100,14 @@ public class Character : MonoBehaviour
     }
 
     /// <summary>
-    /// Gets a new target to go towards.
-    /// </summary>
-    private void GetNewTarget()
-    {
-        // Set a target
-        if (target == null && pathList[1])
-        {
-            target = pathList[1];
-            pathList.Remove(pathList[0]);
-            pathList.Remove(pathList[0]);
-        }
-        else if (pathList[0] != null)
-        {
-            target = pathList[0];
-            pathList.Remove(target);
-        }
-        else
-        {
-            target = null;
-        }
-    }
-
-    /// <summary>
     /// Sets the target for the character to move to.
     /// </summary>
     /// <param name="_target">The target to move to.</param>
     public void SetTarget(GameObject _target)
     {
         target = _target;
+        // Signal that we have a new target
+        currState = ChasingState.NewTarget;
     }
 
     /// <summary>
@@ -191,7 +129,7 @@ public class Character : MonoBehaviour
 
         Vector3 direction = targetTransform - transform.position;
 
-        
+
         if (direction.magnitude <= maxDistance)
         {
             // Step directly to target's position

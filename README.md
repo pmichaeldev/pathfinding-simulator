@@ -12,7 +12,15 @@ Simply open MainScene.unity and press Play if you'd like to test it.
 Otherwise, please build it for Desktop. This is not compatible with mobile or tablet platforms.
 
 
-# USAGE INSTRUCTIONS
+# SCENES
+This game consists of two scenes. The default scene is the MainScene, where you simply click to move to a node based on algorithm choice.
+
+The second scene is the ChaseScene. This scene simulates a character being chased by another. 
+
+For controls, please refer below.
+
+
+# CONTROLS
 The game will load at a default algorithm state.
 
 To change it, please follow the on-screen instructions, i.e.:

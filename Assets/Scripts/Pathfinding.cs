@@ -95,11 +95,6 @@ public class Pathfinding : MonoBehaviour
             return;
         }
 
-        // TODO: Remove these Debug statements later.
-        Debug.Log("closestNode's x: " + closestNode.transform.position.x + ", y: " + closestNode.transform.position.y + ", z: " + closestNode.transform.position.z);
-        Debug.Log("closestNode's name: " + closestNode.name);
-        ////////////////////////////////////////////////////////
-
         // Add this closest node to the Open List
         openList.Add(closestNode);
 
@@ -182,11 +177,6 @@ public class Pathfinding : MonoBehaviour
             Debug.LogError("ERROR::UNKNOWN_CLOSEST_NODE_TO_PLAYER");
             return;
         }
-
-        // TODO: Remove these Debug statements later.
-        Debug.Log("closestNode's x: " + closestNode.transform.position.x + ", y: " + closestNode.transform.position.y + ", z: " + closestNode.transform.position.z);
-        Debug.Log("closestNode's name: " + closestNode.name);
-        ////////////////////////////////////////////////////////
 
         // Add this closest node to the Open List
         openList.Add(closestNode);

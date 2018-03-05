@@ -23,7 +23,8 @@ public class ClusterManager : MonoBehaviour {
     /// </summary>
     void Start () {
         // Acquire the pathfinding object
-        pFinding = GameObject.Find("Character").GetComponent<Pathfinding>();
+        // pFinding = GameObject.Find("Character").GetComponent<Pathfinding>();
+        pFinding = GameObject.FindObjectOfType<Pathfinding>();
 
         // First find the connections
         ComputeBridges();
